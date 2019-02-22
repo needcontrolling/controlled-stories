@@ -1,0 +1,102 @@
+#filterBox
+{
+	height: 20px;
+	font-size: 12px;
+	width: 40%;
+}
+#orderBy
+{
+	float: right;
+	font-size: .9em;
+	color: #bbb;
+}
+#orderByChoice
+{
+	text-decoration: underline;
+	cursor: pointer;
+}
+.clearChanges
+{
+	text-align: right;
+	text-decoration: underline;
+}
+.clearChanges>span { cursor: pointer; }
+.thumbs { float: left; }
+.thumbs .changeRating
+{
+	cursor: pointer;
+	text-decoration: underline;
+}
+.chapterNav
+{
+	margin-top: 10px;
+	margin-bottom: 20px;
+}
+.chapterNav>span:first-of-type
+{
+	float: left;
+	text-decoration: underline;
+}
+ul.storyList { margin-left: 0; }
+.storyList>.story
+{
+	list-style-type: none;
+	margin-bottom: 10px;
+}
+.story.thumbsup { position: relative; }
+.story.thumbsup>.storyTitle:before
+{
+	content: "*";
+	position: absolute;
+	left: -10px;
+	top: 4px;
+	font-weight: bold;
+}
+.chapterLink { cursor: pointer; }
+.storyList>.story>.chapterLink
+{
+	font-weight: 600;
+	text-decoration: none;
+	color: #ccc;
+}
+.read>.chapterLink { color: #888 !important; }
+.storyList .byline
+{
+	padding-left: 5px;
+	color: #999;
+	font-style: italic;
+}
+.storyList .author
+{
+	color: #aaa;
+	cursor: pointer;
+}
+.story .lastUpdated
+{
+	padding-left: 1em;
+	font-size: .75em;
+	color: #888;
+	font-style: italic;
+	vertical-align: text-bottom;
+}
+.story .lastUpdated>.updatedPhrase
+{
+	font-size: .9em;
+	color: #777;
+}
+.storyList>.story>ul
+{
+	line-height: 1.4em;
+	margin-top: -3px;
+}
+.storyList>.story>ul>li
+{
+	display: inline-block;
+	padding: 0 5px;
+}
+.story>ul>li>.chapterLink { text-decoration: underline; }
+#storyContent
+{
+	display: none;
+	clear: both;
+}
