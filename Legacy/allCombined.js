@@ -65,312 +65,336 @@ var $ = jQuery,
 		setTimeout(function() { $scope.storyContent = ""; $scope.$apply(); }, 1000);
 	}, phase1 = function()  // fetch and process all the stories, deal with the cache, and get everything ready to use
 	{
-		var flatStories = [], storiesGathered = 0, sani$ = function(str)
-		{
-			return $(str.replace(/<img[^>]*>/g,""));
-		}, tFlatStory = function(url, title, author)
-		{
-			this.url = "";
-			this.title = "";
-			this.author = "";
-			if (typeof title != "undefined")
-				this.title=title;
-			if (typeof url != "undefined")
-				this.url=url;
-			if (typeof author != "undefined")
-				this.author=author;
-		}, tStory = function(name, author)
-		{
-			this.name = "";
-			this.sortName = "";
-			this.author = "";
-			if (typeof name != "undefined")
+		var flatStories = [], 
+			storiesGathered = 0, 
+			sani$ = function(str)
 			{
-				this.name = name;
-				var m = this.name.match(/^(The )?(.*)$/i);  // strip "the"'s off the beginning of titles for the sake of sorting
-				this.sortName = m?m[2]:this.name;  // if this function is called and *somehow* there is no match, then don't throw an error
-			}
-			if (typeof author != "undefined")
-				this.author = author;
-			
-			this.parts = 0;
-			this.lastUpdated = 0;  // when the story was last added to
-			this.cachedOn = Date.now();  // when this story was cached; if cachedOn<lastUpdated, then we can flag the story as updated, if desired
-			this.chapters = [];
-		}, fetchStory = function(url, id)
-		{
-			$.get({url:url, id:id, success:function(data)
+				return $(str.replace(/<img[^>]*>/g,""));
+			},
+			tFlatStory = function(url, title, author)
 			{
-				d = sani$(data);
-				flatStories[this.id].author = d.find("header.entry-header .author").text();
-				if (flatStories[this.id].author == "Featured Authors")  // Try to get the actual author name
+				this.url = "";
+				this.title = "";
+				this.author = "";
+				if (typeof title != "undefined")
+					this.title=title;
+				if (typeof url != "undefined")
+					this.url=url;
+				if (typeof author != "undefined")
+					this.author=author;
+			},
+			tStory = function(name, author)
+			{
+				this.name = "";
+				this.sortName = "";
+				this.author = "";
+				if (typeof name != "undefined")
 				{
-					var actualAuthor = d.find(".entry-content p").first().text().match(/^by (.*)$/i);
-					if (actualAuthor != null)
-						flatStories[this.id].author = actualAuthor[1];
+					this.name = name;
+					var m = this.name.match(/^(The )?(.*)$/i);  // strip "the"'s off the beginning of titles for the sake of sorting
+					this.sortName = m?m[2]:this.name;  // if this function is called and *somehow* there is no match, then don't throw an error
 				}
+				if (typeof author != "undefined")
+					this.author = author;
 				
-				flatStories[this.id].content = d.find(".entry-content").html();
-				flatStories[this.id].datePosted = Date.parse(d.find("time.entry-date").attr("datetime"));
-				storiesGathered++;
-				if (progressReporting)
-					progress();
-			}}).fail(function()
+				this.parts = 0;
+				this.lastUpdated = 0;  // when the story was last added to
+				this.cachedOn = Date.now();  // when this story was cached; if cachedOn<lastUpdated, then we can flag the story as updated, if desired
+				this.chapters = [];
+			},
+			fetchStory = function(url, id)
 			{
-				console.log("Failed to fetch story from URL ", url, " so we'll try again.");
-				fetchStory(url, id);
-			});
-		}, progress = function()
-		{
-			var prog,
-				timeEstimate = "",
-				perc = storiesGathered / flatStories.length * 100;
-			
-			if (perc > 99 && storiesGathered < flatStories.length)
-				perc = 99;
-			
-			if ((prog = storiesGathered - progressStartedAt.storiesGathered) > 25)
-			{
-				if (storiesGathered != flatStories.length)
+				$.get({url:url, id:id, success:function(data)
 				{
-					var remain = flatStories.length - storiesGathered,
-						secondsPassed = (Date.now() - progressStartedAt.time) / 1000,
-						rate = secondsPassed / prog,
-						minutesRemaining = parseInt(((rate * remain) / 60).toLocaleString('en-US', {maximumFractionDigits: 0}));
+					d = sani$(data);
+					flatStories[this.id].author = d.find("header.entry-header .author").text();
+					if (flatStories[this.id].author == "Featured Authors")  // Try to get the actual author name
+					{
+						var actualAuthor = d.find(".entry-content p").first().text().match(/^by (.*)$/i);
+						if (actualAuthor != null)
+							flatStories[this.id].author = actualAuthor[1];
+					}
 					
-					if (minutesRemaining >= 1)
-						timeEstimate = " - about " + minutesRemaining + " minute" + (minutesRemaining==1?"":"s") + " left";
+					flatStories[this.id].content = d.find(".entry-content").html();
+					flatStories[this.id].datePosted = Date.parse(d.find("time.entry-date").attr("datetime"));
+					storiesGathered++;
+					if (progressReporting)
+						progress();
+				}}).fail(function()
+				{
+					console.log("Failed to fetch story from URL ", url, " so we'll try again.");
+					fetchStory(url, id);
+				});
+			}, 
+			progressLine = "",
+			progress = function()
+			{
+				var prog,
+					timeEstimate = "",
+					perc = storiesGathered / flatStories.length * 100;
+				
+				if (perc > 99 && storiesGathered < flatStories.length)
+					perc = 99;
+				
+				if ((prog = storiesGathered - progressStartedAt.storiesGathered) > 25)
+				{
+					if (storiesGathered != flatStories.length)
+					{
+						var remain = flatStories.length - storiesGathered,
+							secondsPassed = (Date.now() - progressStartedAt.time) / 1000,
+							rate = secondsPassed / prog,
+							minutesRemaining = parseInt(((rate * remain) / 60).toLocaleString('en-US', {maximumFractionDigits: 0}));
+						
+						if (minutesRemaining >= 1)
+							timeEstimate = " - about " + minutesRemaining + " minute" + (minutesRemaining==1?"":"s") + " left";
+						else
+							timeEstimate = " - less than a minute left"
+					}
 					else
-						timeEstimate = " - less than a minute left"
+						timeEstimate = " - done";
 				}
 				else
-					timeEstimate = " - done";
-			}
-			else
-			{
-				timeEstimate = " - estimating time remaining..."
-			}
-			console.info(perc.toLocaleString('en-US', {maximumFractionDigits: 0}) + "% - " + storiesGathered + " of " + flatStories.length + " chapters" + timeEstimate);
-		}, progressReporting = true, progressStartedAt, progressReport = function()
-		{
-			if (progressReporting)
-			{
-				progress();
-				setTimeout(progressReport, 30000);
-			}
-		}, commonTitleRegex = " (?:\\W )?((Part|Chapter)s? (\\d+)( ?(to|and|\\W) ?\\d+)?:?[a-z0-9\\-–'’\" \\(\\)]*)$",
-		hasChapters = function(title)
-		{
-			return title.match(new RegExp(commonTitleRegex, "i")) !== null;
-		}, stripName = function(title)
-		{
-			return title.match(new RegExp("^(.*?)" + commonTitleRegex, "i"))[1];
-		}, gatherChapters = function(storyIndex, title)
-		{
-			var ts = new RegExp("^" + stripName(title) + commonTitleRegex, "i"),
-				story = stories[storyIndex];
-			$.each(flatStories, function(i, fStory)
-			{
-				var m = fStory.title.match(ts);
+				{
+					timeEstimate = " - estimating time remaining..."
+				}
 				
-				// this chapter matches the title argument for gatherChapters, and it hasn't already been added to the story somewhere else
-				if (m !== null && !findStoryPart(fStory.title))
+				progressLine = perc.toLocaleString('en-US', {maximumFractionDigits: 0}) + "% - " + storiesGathered + " of " + flatStories.length + " chapters" + timeEstimate;
+				console.info(progressLine);
+			}, 
+			progressReporting = true, 
+			progressStartedAt, 
+			progressReport = function()
+			{
+				if (progressReporting)
 				{
-					var chapter =
-						{
-							title: m[1],
-							number: parseInt(m[3]),  // this will sometimes be the first number of two (when the chapter title is something like "Parts 3 to 5"), but will at least serve the purpose of sorting
-							url: fStory.url,
-							datePosted: fStory.datePosted,
-							content: fStory.content,
-							readerData:
-							{
-								readOn: undefined
-							}
-						};
-					story.chapters.push(chapter);
-					
-					story.parts++;
-					if (story.lastUpdated < fStory.datePosted)
-						story.lastUpdated = fStory.datePosted;
+					progress();
+					setTimeout(progressReport, 30000);
 				}
-			});
-		}, getName = function(title)
-		{
-			return hasChapters(title) ? stripName(title) : title;
-		}, storyExists = function(title)
-		{
-			for (var i=0; i<stories.length; i++)
+			}, 
+			commonTitleRegex = " (?:\\W )?((Part|Chapter)s? (\\d+)( ?(to|and|\\W) ?\\d+)?:?[a-z0-9\\-–'’\" \\(\\)]*)$",
+			hasChapters = function(title)
 			{
-				if (stories[i].name == getName(title))
-					return i;
-			}
-			
-			return -1;
-		}, findStoryPart = function(title)
-		{
-			var storyIndex = storyExists(title);
-			if (storyIndex >= 0)
+				return title.match(new RegExp(commonTitleRegex, "i")) !== null;
+			}, 
+			stripName = function(title)
 			{
-				if (hasChapters(title))
+				return title.match(new RegExp("^(.*?)" + commonTitleRegex, "i"))[1];
+			}, 
+			gatherChapters = function(storyIndex, title)
+			{
+				var ts = new RegExp("^" + stripName(title) + commonTitleRegex, "i"),
+					story = stories[storyIndex];
+				$.each(flatStories, function(i, fStory)
 				{
-					var partTitle = title.match(new RegExp(commonTitleRegex, "i"))[1];
-					for (var i = 0; i<stories[storyIndex].chapters.length; i++)
-					{
-						if (stories[storyIndex].chapters[i].title == partTitle)  // the story and part exist
-							return true;
-					}
-				}
-				else  // the story exists, but has no chapters
-					return true;
-			}
-			
-			
-			return false;  // either the part doesn't exist, or the story and part don't exist
-		}, processStories = function()
-		{
-			console.info("Finalizing story processing...");
-			
-			$.each(flatStories, function(i, fStory)
-			{
-				var storyIndex = storyExists(fStory.title);
-				if (storyIndex == -1)  // the story doesn't exist, so add & process it
-				{
-					stories.push(new tStory(getName(fStory.title), fStory.author));
+					var m = fStory.title.match(ts);
 					
-					var story = stories[stories.length-1];
-					if (hasChapters(fStory.title))
-						gatherChapters(stories.length-1, fStory.title);
-					else
+					// this chapter matches the title argument for gatherChapters, and it hasn't already been added to the story somewhere else
+					if (m !== null && !findStoryPart(fStory.title))
 					{
-						var chapter = 
-						{
-							title: story.name,
-							url: fStory.url,
-							datePosted: fStory.datePosted,
-							content: fStory.content,
-							readerData:
+						var chapter =
 							{
-								readOn: undefined
-							}
-						};
+								title: m[1],
+								number: parseInt(m[3]),  // this will sometimes be the first number of two (when the chapter title is something like "Parts 3 to 5"), but will at least serve the purpose of sorting
+								url: fStory.url,
+								datePosted: fStory.datePosted,
+								content: fStory.content,
+								readerData:
+								{
+									readOn: undefined
+								}
+							};
 						story.chapters.push(chapter);
 						
-						story.parts = 1;
-						story.lastUpdated = fStory.datePosted;
+						story.parts++;
+						if (story.lastUpdated < fStory.datePosted)
+							story.lastUpdated = fStory.datePosted;
 					}
-				}
-				else if (!findStoryPart(fStory.title))  // the story does exist, but if this chapter doesn't exist yet, add it
-					gatherChapters(storyIndex, fStory.title);
-			});
-			
-			// store the stories to the fs
-			storyStorage.root.getFile('stories.json', {}, saveStoriesToFs);
-			
-			progressReporting = true;  // if we disabled progress reporting because of a retrieval from cache, turn it back on now, in case we need it later
-		}, waitForStories = function()
-		{
-			if (storiesGathered < flatStories.length || storiesGathered == 0)
-				setTimeout(waitForStories, 500);
-			else
-				processStories();
-		}, getStoriesFromFs = function(file)
-		{
-			var storyCacheAccess = new FileReader();
-			storyCacheAccess.onloadend = function(e)
-			{
-				if (this.result.length)  // there are stories cached, so let's use them
-				{
-					stories = JSON.parse(this.result);
-					
-					progressReporting = false;
-					console.info("Stories retrieved from cache; checking to look for new/updated stories...");
-				}
-				// setTimeout(phase3, 2000);
-				// we've loaded any cached stories, now kick off the rest of the story-processing extraveganza
-				progressStartedAt = {time: Date.now(), storiesGathered: storiesGathered};
-				$.get("/stories-by-title/", function(storyList)
-				{
-					var rawStoryList = sani$(storyList);
-					rawStoryList.find("#content>.entry-content>ul:first-of-type>li>a").each(function()
-					{
-						var thisTitle = $(this).text();
-						// console.debug(thisTitle);
-						if (!findStoryPart(thisTitle))  // if this story doesn't exist, or it does, but this part doesn't exist
-						{
-							flatStories.push(new tFlatStory(this.href, thisTitle));
-							fetchStory(this.href, flatStories.length-1);
-						}
-					});
-					if (progressReporting)
-					{
-						progress();
-						// console.debug("rawStoryList", rawStoryList);
-					}
-					// console.debug("flatStories", flatStories);
 				});
-				console.info("Gathering stories now; please standby...");
-				waitForStories();
-			}
-			
-			storyCacheAccess.readAsText(file);
-		}, requestStorageAllocation = function(mb)
-		{
-			navigator.webkitPersistentStorage.requestQuota(1024*1024*mb, requestFSAccess);
-		}, requestFSAccess = function(bytesGranted)
-		{
-			if (bytesGranted >= storageReservationInMB*1024*1024)
+			}, 
+			getName = function(title)
 			{
-				// set up access to the fs, and once it is granted, kick off the story extraveganza
-				webkitRequestFileSystem(
-					PERSISTENT,
-					bytesGranted,
-					fsAccessGranted,
-					function(){console.error("Access Denied to cache data; aborting story process.");});
-			}
-			else
-				console.error("Access not granted for enough cache storage space; aborting story process.");
-		}, fsAccessGranted = function(fs)
-		{
-			storyStorage = fs;
-			fs.root.getFile('stories.json', {create: true}, function(fe)
+				return hasChapters(title) ? stripName(title) : title;
+			}, 
+			storyExists = function(title)
 			{
-				fe.file(getStoriesFromFs);
-			});
-		};
-		
-		// these need to update window.{functionName}, so we don't declare it w/ "var"
-		clearCachedStories = function()
-		{
-			storyStorage.root.getFile('stories.json', {create: false}, function(fe)
-			{
-				fe.remove(function() {});
-			});
-		};
-		saveStoriesToFs = function(fe)
-		{
-			fe.createWriter(function(fw)
-			{
-				fw.onwriteend = function(e)
+				for (var i=0; i<stories.length; i++)
 				{
-					if (!bootstrapped)
-					{
-						console.info("All stories gathered and processed. Loading now...");
-						phase3();
-					}
-					else
-						console.info("Cache updated!");
-				};
-				fw.onerror = function(e)
-				{
-					console.error('Something went wrong when trying to cache the processed stories: ' + e.toString());
-				};
+					if (stories[i].name == getName(title))
+						return i;
+				}
 				
-				// Create a new Blob and write it to log.txt.
-				var storyJSON = new Blob([JSON.stringify(stories)], {type: 'text/json'});
-				fw.write(storyJSON);
-			});
-		};
+				return -1;
+			}, 
+			findStoryPart = function(title)
+			{
+				var storyIndex = storyExists(title);
+				if (storyIndex >= 0)
+				{
+					if (hasChapters(title))
+					{
+						var partTitle = title.match(new RegExp(commonTitleRegex, "i"))[1];
+						for (var i = 0; i<stories[storyIndex].chapters.length; i++)
+						{
+							if (stories[storyIndex].chapters[i].title == partTitle)  // the story and part exist
+								return true;
+						}
+					}
+					else  // the story exists, but has no chapters
+						return true;
+				}
+				
+				
+				return false;  // either the part doesn't exist, or the story and part don't exist
+			}, 
+			processStories = function()
+			{
+				console.info("Finalizing story processing...");
+				
+				$.each(flatStories, function(i, fStory)
+				{
+					var storyIndex = storyExists(fStory.title);
+					if (storyIndex == -1)  // the story doesn't exist, so add & process it
+					{
+						stories.push(new tStory(getName(fStory.title), fStory.author));
+						
+						var story = stories[stories.length-1];
+						if (hasChapters(fStory.title))
+							gatherChapters(stories.length-1, fStory.title);
+						else
+						{
+							var chapter = 
+							{
+								title: story.name,
+								url: fStory.url,
+								datePosted: fStory.datePosted,
+								content: fStory.content,
+								readerData:
+								{
+									readOn: undefined
+								}
+							};
+							story.chapters.push(chapter);
+							
+							story.parts = 1;
+							story.lastUpdated = fStory.datePosted;
+						}
+					}
+					else if (!findStoryPart(fStory.title))  // the story does exist, but if this chapter doesn't exist yet, add it
+						gatherChapters(storyIndex, fStory.title);
+				});
+				
+				// store the stories to the fs
+				storyStorage.root.getFile('stories.json', {}, saveStoriesToFs);
+				
+				progressReporting = true;  // if we disabled progress reporting because of a retrieval from cache, turn it back on now, in case we need it later
+			}, 
+			waitForStories = function()
+			{
+				if (storiesGathered < flatStories.length || storiesGathered == 0)
+					setTimeout(waitForStories, 500);
+				else
+					processStories();
+			}, 
+			getStoriesFromFs = function(file)
+			{
+				var storyCacheAccess = new FileReader();
+				storyCacheAccess.onloadend = function(e)
+				{
+					if (this.result.length)  // there are stories cached, so let's use them
+					{
+						stories = JSON.parse(this.result);
+						
+						progressReporting = false;
+						console.info("Stories retrieved from cache; checking to look for new/updated stories...");
+					}
+					// setTimeout(phase3, 2000);
+					// we've loaded any cached stories, now kick off the rest of the story-processing extraveganza
+					progressStartedAt = {time: Date.now(), storiesGathered: storiesGathered};
+					$.get("/stories-by-title/", function(storyList)
+					{
+						var rawStoryList = sani$(storyList);
+						rawStoryList.find("#content>.entry-content>ul:first-of-type>li>a").each(function()
+						{
+							var thisTitle = $(this).text();
+							// console.debug(thisTitle);
+							if (!findStoryPart(thisTitle))  // if this story doesn't exist, or it does, but this part doesn't exist
+							{
+								flatStories.push(new tFlatStory(this.href, thisTitle));
+								fetchStory(this.href, flatStories.length-1);
+							}
+						});
+						if (progressReporting)
+						{
+							progress();
+							// console.debug("rawStoryList", rawStoryList);
+						}
+						// console.debug("flatStories", flatStories);
+					});
+					console.info("Gathering stories now; please standby...");
+					waitForStories();
+				}
+				
+				storyCacheAccess.readAsText(file);
+			}, 
+			requestStorageAllocation = function(mb)
+			{
+				navigator.webkitPersistentStorage.requestQuota(1024*1024*mb, requestFSAccess);
+			}, 
+			requestFSAccess = function(bytesGranted)
+			{
+				if (bytesGranted >= storageReservationInMB*1024*1024)
+				{
+					// set up access to the fs, and once it is granted, kick off the story extraveganza
+					webkitRequestFileSystem(
+						PERSISTENT,
+						bytesGranted,
+						fsAccessGranted,
+						function(){console.error("Access Denied to cache data; aborting story process.");});
+				}
+				else
+					console.error("Access not granted for enough cache storage space; aborting story process.");
+			}, 
+			fsAccessGranted = function(fs)
+			{
+				storyStorage = fs;
+				fs.root.getFile('stories.json', {create: true}, function(fe)
+				{
+					fe.file(getStoriesFromFs);
+				});
+			};
+			
+			// these need to update window.{functionName}, so we don't declare it w/ "var"
+			clearCachedStories = function()
+			{
+				storyStorage.root.getFile('stories.json', {create: false}, function(fe)
+				{
+					fe.remove(function() {});
+				});
+			};
+			saveStoriesToFs = function(fe)
+			{
+				fe.createWriter(function(fw)
+				{
+					fw.onwriteend = function(e)
+					{
+						if (!bootstrapped)
+						{
+							console.info("All stories gathered and processed. Loading now...");
+							phase3();
+						}
+						else
+							console.info("Cache updated!");
+					};
+					fw.onerror = function(e)
+					{
+						console.error('Something went wrong when trying to cache the processed stories: ' + e.toString());
+					};
+					
+					// Create a new Blob and write it to log.txt.
+					var storyJSON = new Blob([JSON.stringify(stories)], {type: 'text/json'});
+					fw.write(storyJSON);
+				});
+			};
 		
 		
 		requestStorageAllocation(storageReservationInMB);
@@ -625,7 +649,8 @@ var $ = jQuery,
 		$("body").append('<style type="text/css">#filterBox{	height: 20px;	font-size: 12px;	width: 40%;}#orderBy{	float: right;	font-size: .9em;	color: #bbb;}#orderByChoice{	text-decoration: underline;	cursor: pointer;}.clearChanges{	text-align: right;	text-decoration: underline;}.clearChanges>span { cursor: pointer; }.thumbs { float: left; }.thumbs .changeRating{	cursor: pointer;	text-decoration: underline;}.chapterNav{	margin-top: 10px;	margin-bottom: 20px;}.chapterNav>span:first-of-type{	float: left;	text-decoration: underline;}ul.storyList { margin-left: 0; }.storyList>.story{	list-style-type: none;	margin-bottom: 10px;}.story.thumbsup { position: relative; }.story.thumbsup>.storyTitle:before{	content: "*";	position: absolute;	left: -10px;	top: 4px;	font-weight: bold;}.chapterLink { cursor: pointer; }.storyList>.story>.chapterLink{	font-weight: 600;	text-decoration: none;	color: #ccc;}.read>.chapterLink { color: #888 !important; }.storyList .byline{	padding-left: 5px;	color: #999;	font-style: italic;}.storyList .author{	color: #aaa;	cursor: pointer;}.story .lastUpdated{	padding-left: 1em;	font-size: .75em;	color: #888;	font-style: italic;	vertical-align: text-bottom;}.story .lastUpdated>.updatedPhrase{	font-size: .9em;	color: #777;}.storyList>.story>ul{	line-height: 1.4em;	margin-top: -3px;}.storyList>.story>ul>li{	display: inline-block;	padding: 0 5px;}.story>ul>li>.chapterLink { text-decoration: underline; }#storyContent{	display: none;	clear: both;}</style>');
 		
 		// console.debug("Phase2 completed");
-	}, phase3 = function()  // this phase will take the stories and use Angular to display them on the page
+	}, 
+	phase3 = function()  // this phase will take the stories and use Angular to display them on the page
 	{
 		var storyListTemplate = '<div class="filterStories" ng-show="!storyContent">	<input type="text" id="filterBox" ng-model="universalFilter" placeholder="Type here to filter stories...">	<span id="orderBy">Order by: <span id="orderByChoice" ng-click="cycleOrderBy()">{{ orderBy }}</span></span></div><div class="clearChanges" ng-show="authorFilter&&!storyContent">	<span ng-click="doAuthor()">Clear Author Filter</span></div><div class="thumbs" ng-if="storyContent">	Thumbs		<span ng-show="noStoryThumbs()">				<span class="changeRating" ng-click="storyThumbsUp(true)">up</span> / <span class="changeRating" ng-click="storyThumbsDown(true)">down</span>		</span>		<span class="changeRating" ng-show="!noStoryThumbs()" ng-click="noStoryThumbs(true)">			<span ng-show="storyThumbsUp()">Up!</span><span ng-show="storyThumbsDown()">Down :(</span>		</span></div><div class="clearChanges" ng-show="storyContent">	<span ng-click="doStory()">Close Story</span></div><div class="clearChanges" ng-show="storyContent&&currentChapter.readerData.readOn">	<span ng-click="markUnread()">Mark Chapter as Unread</span></div><div ng-if="storyContent" class="clearChanges chapterNav">	<span ng-show="isPrevChapter()" ng-click="loadPrevChapter()">Previous Chapter</span>	<span ng-show="isNextChapter()" ng-click="loadNextChapter()">Next Chapter</span></div><ul class="storyList" ng-hide="storyContent">	<li class="story" ng-repeat="story in stories | storyFilter:{author:authorFilter,$:universalFilter} | orderBy:orderBy:orderByReverse" ng-class="storyClassesForStoryList(story)" ng-show="!storyThumbsDown(story)">		<span class="storyTitle chapterLink" ng-click="doStory(story, story.chapters[0])" href="{{story.chapters[0].url}}" rel="bookmark">{{story.name}}</span>		<span class="byline"> by <span class="author" ng-click="doAuthor(story.author)">{{story.author}}</span></span>		<span class="lastUpdated">			<span class="updatedPhrase">{{ story.parts==1 ? "posted" : "updated" }}</span>				<span class="updatedDate">{{ shortDateFormat(story) }}</span>		</span>		<ul ng-if="story.parts>1">			<li ng-repeat="chapter in story.chapters | orderBy:\'number\'" ng-class="chapter.readerData.readOn?\'read\':\'\'">				<span class="chapterLink" ng-click="doStory(story, chapter)" href="{{chapter.url}}" rel="bookmark">{{chapter.title}}</span>			</li>		</ul>	</li></ul><div id="storyContent" ng-show="storyContent" ng-bind-html="storyContent"></div><div ng-if="storyContent" class="clearChanges chapterNav">	<span ng-show="isPrevChapter()" ng-click="loadPrevChapter()">Previous Chapter</span>	<span ng-show="isNextChapter()" ng-click="loadNextChapter()">Next Chapter</span></div><div class="clearChanges" ng-show="authorFilter&&!storyContent">	<span ng-click="doAuthor()">Clear Author Filter</span></div><div class="clearChanges" ng-show="storyContent">	<span ng-click="doStory()">Close Story</span></div><div class="clearChanges" ng-show="storyContent&&currentChapter.readerData.readOn">	<span ng-click="markUnread()">Mark Chapter as Unread</span></div>';
 		
